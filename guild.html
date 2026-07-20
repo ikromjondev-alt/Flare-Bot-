@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flare Bot — Server {{ guild_id }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0d0d0d;
+            color: #dcddde;
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 { font-size: 20px; color: #fff; }
+        .navbar h1 span { color: #5865f2; }
+        .nav-links { display: flex; gap: 12px; }
+        .nav-links a {
+            padding: 8px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .back-btn { background: rgba(255,255,255,0.05); color: #b9bbbe; border: 1px solid rgba(255,255,255,0.1); }
+        .back-btn:hover { background: rgba(255,255,255,0.1); }
+        .logout-btn { background: rgba(237,66,69,0.15); color: #ed4245; border: 1px solid rgba(237,66,69,0.3); }
+        .logout-btn:hover { background: rgba(237,66,69,0.25); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 32px; }
+        .flash {
+            background: rgba(59,165,92,0.15);
+            border: 1px solid rgba(59,165,92,0.3);
+            color: #3ba55c;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+        .section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .section h2 {
+            font-size: 16px;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #72767d;
+        }
+        input[type="text"], input[type="number"], select {
+            padding: 10px 14px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: #5865f2; }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #5865f2;
+        }
+        .btn {
+            padding: 10px 24px;
+            background: linear-gradient(135deg, #5865f2, #4752c4);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(88,101,242,0.35); }
+        .btn-danger {
+            background: linear-gradient(135deg, #ed4245, #c03537);
+            padding: 6px 14px;
+            font-size: 12px;
+        }
+        .table-wrap { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            text-align: left;
+            padding: 12px;
+            color: #72767d;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .empty { color: #72767d; font-style: italic; padding: 20px 0; }
+        .domain-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(88,101,242,0.1);
+            border: 1px solid rgba(88,101,242,0.2);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin: 4px;
+        }
+        .domain-tag form { display: inline; }
+        .domain-tag button {
+            background: none;
+            border: none;
+            color: #ed4245;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>🔥 <span>Flare</span> Bot Panel</h1>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="back-btn">← Back</a>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for msg in messages %}
+                    <div class="flash">{{ msg }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Settings -->
+        <div class="section">
+            <h2>⚙️ Settings</h2>
+            <form method="POST" action="{{ url_for('update_settings', guild_id=guild_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Report Channel ID</label>
+                        <input type="text" name="report_channel_id" value="{{ settings.report_channel_id or '' }}" placeholder="Channel ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Log Channel ID</label>
+                        <input type="text" name="log_channel_id" value="{{ log_channel_id or '' }}" placeholder="Channel ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Mute Role ID</label>
+                        <input type="text" name="mute_role_id" value="{{ settings.mute_role_id or '' }}" placeholder="Role ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Language</label>
+                        <select name="language">
+                            <option value="ru" {% if settings.language == 'ru' %}selected{% endif %}>Русский</option>
+                            <option value="en" {% if settings.language == 'en' %}selected{% endif %}>English</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" name="antispam_enabled" id="antispam" {% if settings.antispam_enabled %}checked{% endif %}>
+                    <label for="antispam" style="margin:0">Anti-spam enabled</label>
+                </div>
+                <button type="submit" class="btn" style="margin-top:16px">Save Settings</button>
+            </form>
+        </div>
+
+        <!-- Autorole -->
+        <div class="section">
+            <h2>🎭 Auto-Role</h2>
+            <form method="POST" action="{{ url_for('update_autorole', guild_id=guild_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Welcome Channel ID</label>
+                        <input type="text" name="channel_id" value="{{ autorole.channel_id or '' }}" placeholder="Channel ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Role ID</label>
+                        <input type="text" name="role_id" value="{{ autorole.role_id or '' }}" placeholder="Role ID">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label>Custom Message</label>
+                        <input type="text" name="custom_message" value="{{ autorole.custom_message or '' }}" placeholder="Welcome message...">
+                    </div>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" name="enabled" id="autorole" {% if autorole.enabled %}checked{% endif %}>
+                    <label for="autorole" style="margin:0">Enabled</label>
+                </div>
+                <button type="submit" class="btn" style="margin-top:16px">Save Auto-Role</button>
+            </form>
+        </div>
+
+        <!-- Allowed Domains -->
+        <div class="section">
+            <h2>🔗 Allowed Domains</h2>
+            <form method="POST" action="{{ url_for('add_domain', guild_id=guild_id) }}" style="margin-bottom:16px">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div style="display:flex;gap:8px">
+                    <input type="text" name="domain" placeholder="example.com" style="flex:1">
+                    <button type="submit" class="btn">Add</button>
+                </div>
+            </form>
+            {% if domains %}
+                {% for d in domains %}
+                <span class="domain-tag">
+                    {{ d }}
+                    <form method="POST" action="{{ url_for('remove_domain', guild_id=guild_id, domain=d) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit">×</button>
+                    </form>
+                </span>
+                {% endfor %}
+            {% else %}
+                <p class="empty">No allowed domains</p>
+            {% endif %}
+        </div>
+
+        <!-- Warnings -->
+        <div class="section">
+            <h2>⚠️ Warnings ({{ warns|length }})</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>ID</th><th>User ID</th><th>Moderator</th><th>Reason</th><th>Date</th><th></th></tr></thead>
+                    <tbody>
+                        {% for w in warns %}
+                        <tr>
+                            <td>{{ w.id }}</td>
+                            <td><code>{{ w.user_id }}</code></td>
+                            <td><code>{{ w.moderator_id }}</code></td>
+                            <td>{{ w.reason }}</td>
+                            <td>{{ w.created_at }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('delete_warn', guild_id=guild_id, warn_id=w.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="empty">No warnings</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Mutes -->
+        <div class="section">
+            <h2>🔇 Active Mutes ({{ mutes|length }})</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>User ID</th><th>Moderator</th><th>Reason</th><th>Expires</th><th></th></tr></thead>
+                    <tbody>
+                        {% for m in mutes %}
+                        <tr>
+                            <td><code>{{ m.user_id }}</code></td>
+                            <td><code>{{ m.moderator_id }}</code></td>
+                            <td>{{ m.reason }}</td>
+                            <td>{% if m.expires_at %}{{ m.expires_at }}{% else %}Permanent{% endif %}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('delete_mute', guild_id=guild_id, user_id=m.user_id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger">Unmute</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="empty">No active mutes</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Bans -->
+        <div class="section">
+            <h2>🔨 Active Bans ({{ bans|length }})</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>User ID</th><th>Moderator</th><th>Reason</th><th>Expires</th><th></th></tr></thead>
+                    <tbody>
+                        {% for b in bans %}
+                        <tr>
+                            <td><code>{{ b.user_id }}</code></td>
+                            <td><code>{{ b.moderator_id }}</code></td>
+                            <td>{{ b.reason }}</td>
+                            <td>{% if b.expires_at %}{{ b.expires_at }}{% else %}Permanent{% endif %}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('delete_ban', guild_id=guild_id, user_id=b.user_id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn btn-danger">Unban</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="empty">No active bans</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

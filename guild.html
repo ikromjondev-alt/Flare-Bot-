@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted">⬅ <a href="{{ url_for('dashboard') }}" style="color:var(--muted)">Все серверы / All servers</a></p>
+<h1 style="font-size:20px;">Сервер {{ guild_id }}</h1>
+
+<div class="card">
+  <h2>⚙️ Общие настройки / General settings</h2>
+  <form method="post" action="{{ url_for('update_settings', guild_id=guild_id) }}">
+    <label>ID канала жалоб / Report channel ID</label>
+    <input type="number" name="report_channel_id" value="{{ settings.get('report_channel_id') or '' }}">
+
+    <label>ID канала логов / Log channel ID</label>
+    <input type="number" name="log_channel_id" value="{{ log_channel_id or '' }}">
+
+    <label>ID роли Muted / Mute role ID</label>
+    <input type="number" name="mute_role_id" value="{{ settings.get('mute_role_id') or '' }}">
+
+    <label>Язык бота / Bot language</label>
+    <select name="language">
+      <option value="ru" {% if settings.get('language','ru') == 'ru' %}selected{% endif %}>Русский</option>
+      <option value="en" {% if settings.get('language') == 'en' %}selected{% endif %}>English</option>
+    </select>
+
+    <div class="checkbox-row">
+      <input type="checkbox" name="antispam_enabled" id="as"
+        {% if settings.get('antispam_enabled', 1) %}checked{% endif %}>
+      <label for="as" style="margin:0;">Антиспам-фильтр ссылок включён / Antispam link filter enabled</label>
+    </div>
+
+    <button type="submit">Сохранить / Save</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>🎉 Авто-роль и приветствие / Autorole & welcome</h2>
+  <form method="post" action="{{ url_for('update_autorole', guild_id=guild_id) }}">
+    <label>ID канала приветствий / Welcome channel ID</label>
+    <input type="number" name="channel_id" value="{{ autorole.get('channel_id') or '' }}">
+
+    <label>ID выдаваемой роли / Auto-assigned role ID</label>
+    <input type="number" name="role_id" value="{{ autorole.get('role_id') or '' }}">
+
+    <label>Кастомное сообщение (необязательно) / Custom message (optional)</label>
+    <textarea name="custom_message">{{ autorole.get('custom_message') or '' }}</textarea>
+
+    <div class="checkbox-row">
+      <input type="checkbox" name="enabled" id="ar"
+        {% if autorole.get('enabled') %}checked{% endif %}>
+      <label for="ar" style="margin:0;">Авто-выдача роли включена / Autorole enabled</label>
+    </div>
+
+    <button type="submit">Сохранить / Save</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>🔗 Разрешённые домены / Allowed domains</h2>
+  <table>
+    <tr><th>Домен</th><th></th></tr>
+    {% for d in domains %}
+    <tr>
+      <td>{{ d }}</td>
+      <td>
+        <form method="post" action="{{ url_for('remove_domain', guild_id=guild_id, domain=d) }}">
+          <button class="danger" type="submit">Удалить</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form method="post" action="{{ url_for('add_domain', guild_id=guild_id) }}" style="margin-top:14px;">
+    <input type="text" name="domain" placeholder="example.com" style="display:inline-block; width:70%;">
+    <button type="submit" style="margin-top:0;">Добавить</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>⚠️ Предупреждения / Warnings ({{ warns|length }})</h2>
+  <table>
+    <tr><th>User ID</th><th>Модератор</th><th>Причина</th><th></th></tr>
+    {% for w in warns %}
+    <tr>
+      <td>{{ w.user_id }}</td>
+      <td>{{ w.moderator_id }}</td>
+      <td>{{ w.reason }}</td>
+      <td>
+        <form method="post" action="{{ url_for('delete_warn', guild_id=guild_id, warn_id=w.id) }}">
+          <button class="danger" type="submit">Снять</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not warns %}<p class="muted">Нет предупреждений.</p>{% endif %}
+</div>
+
+<div class="card">
+  <h2>🔇 Активные мьюты / Active mutes ({{ mutes|length }})</h2>
+  <table>
+    <tr><th>User ID</th><th>Причина</th><th>Истекает (unix)</th><th></th></tr>
+    {% for m in mutes %}
+    <tr>
+      <td>{{ m.user_id }}</td>
+      <td>{{ m.reason }}</td>
+      <td>{{ m.expires_at or "навсегда" }}</td>
+      <td>
+        <form method="post" action="{{ url_for('delete_mute', guild_id=guild_id, user_id=m.user_id) }}">
+          <button class="danger" type="submit">Снять</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not mutes %}<p class="muted">Нет активных мьютов.</p>{% endif %}
+</div>
+{% endblock %}
